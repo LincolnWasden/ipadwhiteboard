@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Whiteboard (Local Storage)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        #toolbar-container {
+            position: absolute;
+            top: 50%;
+            left: 1rem;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+        }
+        #toolbar {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, width 0.3s ease-in-out, padding 0.3s ease-in-out, margin 0.3s ease-in-out;
+            transform-origin: left;
+            overflow: hidden;
+        }
+        #toolbar-container.minimized #toolbar {
+            transform: scaleX(0);
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            padding: 0;
+            margin: 0;
+        }
+        #toggle-toolbar {
+            transition: transform 0.3s ease-in-out, margin-left 0.3s ease-in-out;
+            margin-left: 0.5rem; /* Equivalent to ml-2 */
+        }
+        #toolbar-container.minimized #toggle-toolbar {
+            transform: rotate(180deg);
+            margin-left: 0;
+        }
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            transition: transform 0.1s ease-in-out;
+        }
+        .color-option.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 0 3px var(--color-val);
+        }
+        #whiteboard {
+            display: block;
+            touch-action: none; /* Prevents default touch actions */
+            cursor: crosshair;
+            background-color: #ffffff;
+        }
+        .export-button:disabled, .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .tooltip {
+            position: absolute;
+            left: 120%;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #1f2937;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .action-button:hover .tooltip {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="w-screen h-screen flex flex-col items-center justify-center">
+        <!-- Toolbar -->
+        <div id="toolbar-container">
+            <div id="toolbar" class="bg-white p-3 rounded-xl shadow-lg flex flex-col items-center space-y-4">
+                <!-- Colors -->
+                <div class="flex flex-col space-y-2">
+                    <div class="color-option active" style="--color-val: #000000; background-color: #000000;" data-color="#000000"></div>
+                    <div class="color-option" style="--color-val: #EF4444; background-color: #EF4444;" data-color="#EF4444"></div>
+                    <div class="color-option" style="--color-val: #3B82F6; background-color: #3B82F6;" data-color="#3B82F6"></div>
+                    <div class="color-option" style="--color-val: #22C55E; background-color: #22C55E;" data-color="#22C55E"></div>
+                    <div class="color-option" style="--color-val: #F97316; background-color: #F97316;" data-color="#F97316"></div>
+                </div>
+                <!-- Divider -->
+                <div class="w-8 h-px bg-gray-200"></div>
+                <!-- Brush Size -->
+                <div class="flex flex-col items-center space-y-2">
+                    <label for="brushSize" class="text-xs font-medium text-gray-500">Size</label>
+                    <input type="range" id="brushSize" min="1" max="50" value="5" class="w-20 cursor-pointer" style="writing-mode: vertical-lr; direction: rtl;">
+                </div>
+                <!-- Divider -->
+                <div class="w-8 h-px bg-gray-200"></div>
+                <!-- Actions -->
+                <div class="flex flex-col space-y-2">
+                    <button id="clearButton" class="action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-red-400">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        <span class="tooltip">Clear All</span>
+                    </button>
+                    <button id="resetViewButton" class="action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5"></path></svg>
+                        <span class="tooltip">Reset View</span>
+                    </button>
+                    <button id="exportPNGButton" class="export-button action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400">
+                         <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span class="tooltip">Export PNG</span>
+                    </button>
+                    <button id="exportJPGButton" class="export-button action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400">
+                         <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span class="tooltip">Export JPG</span>
+                    </button>
+                </div>
+            </div>
+            <button id="toggle-toolbar" class="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+        </div>
+
+        <!-- Whiteboard Canvas -->
+        <canvas id="whiteboard"></canvas>
+        
+        <!-- Confirmation Modal -->
+        <div id="confirmModal" class="hidden absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
+            <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
+                <p id="confirmMessage" class="mb-4 text-lg">Are you sure?</p>
+                <div class="flex justify-center space-x-4">
+                    <button id="confirmCancel" class="px-6 py-2 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">Cancel</button>
+                    <button id="confirmOk" class="px-6 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const canvas = document.getElementById('whiteboard');
+        const ctx = canvas.getContext('2d');
+        const toolbarContainer = document.getElementById('toolbar-container');
+        const toggleToolbarButton = document.getElementById('toggle-toolbar');
+        const clearButton = document.getElementById('clearButton');
+        const brushSizeSlider = document.getElementById('brushSize');
+        const colorOptions = document.querySelectorAll('.color-option');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmOk = document.getElementById('confirmOk');
+        const confirmCancel = document.getElementById('confirmCancel');
+        const resetViewButton = document.getElementById('resetViewButton');
+        const exportPNGButton = document.getElementById('exportPNGButton');
+        const exportJPGButton = document.getElementById('exportJPGButton');
+
+        // --- State ---
+        let drawing = false;
+        let currentColor = '#000000';
+        let currentBrushSize = 5;
+        let currentPath = [];
+        let onConfirm = null;
+        let allPaths = [];
+        let scale = 1, panOffset = { x: 0, y: 0 };
+        let isPanning = false, panStart = { x: 0, y: 0 };
+        let initialPinchDistance = null;
+        const MAX_ZOOM = 10, MIN_ZOOM = 0.1;
+        const PATHS_STORAGE_KEY = 'infiniteWhiteboardPaths';
+        const TOOLBAR_STATE_KEY = 'infiniteWhiteboardToolbarState';
+
+        // --- Local Storage & State Management ---
+        function savePaths() {
+            localStorage.setItem(PATHS_STORAGE_KEY, JSON.stringify(allPaths));
+            updateExportButtonState();
+        }
+        function loadPaths() {
+            const saved = localStorage.getItem(PATHS_STORAGE_KEY);
+            if (saved) allPaths = JSON.parse(saved);
+            updateExportButtonState();
+        }
+        function saveToolbarState() {
+            localStorage.setItem(TOOLBAR_STATE_KEY, toolbarContainer.classList.contains('minimized'));
+        }
+        function loadToolbarState() {
+            const isMinimized = localStorage.getItem(TOOLBAR_STATE_KEY) === 'true';
+            if (isMinimized) toolbarContainer.classList.add('minimized');
+        }
+
+        // --- Canvas & Drawing ---
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; requestAnimationFrame(redrawCanvas); }
+        window.addEventListener('resize', resizeCanvas);
+        
+        function getScreenPosition(e) {
+            if (e.touches) {
+                if (e.touches.length === 1) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                if (e.touches.length === 2) return { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+                return null;
+            }
+            return { x: e.clientX, y: e.clientY };
+        }
+        function screenToWorld(x, y) { return { x: (x - panOffset.x) / scale, y: (y - panOffset.y) / scale }; }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1 / scale;
+            const gridSize = 50; const origin = screenToWorld(0, 0);
+            const startX = Math.floor(origin.x / gridSize) * gridSize, startY = Math.floor(origin.y / gridSize) * gridSize;
+            const endX = (canvas.width - panOffset.x) / scale, endY = (canvas.height - panOffset.y) / scale;
+            for(let x = startX; x < endX; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke(); }
+            for(let y = startY; y < endY; y += gridSize) { ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke(); }
+        }
+
+        function drawPaths(context, paths, options = {}) {
+            const { offsetX = 0, offsetY = 0 } = options;
+            paths.forEach(path => {
+                if (!path || !path.points || path.points.length < 1) return;
+                context.beginPath(); context.moveTo(path.points[0].x + offsetX, path.points[0].y + offsetY);
+                context.strokeStyle = path.color; context.lineWidth = path.size;
+                context.lineCap = 'round'; context.lineJoin = 'round';
+                for (let i = 1; i < path.points.length; i++) context.lineTo(path.points[i].x + offsetX, path.points[i].y + offsetY);
+                context.stroke();
+            });
+        }
+
+        function redrawCanvas() {
+            ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.restore();
+            ctx.save(); ctx.translate(panOffset.x, panOffset.y); ctx.scale(scale, scale);
+            drawGrid(); drawPaths(ctx, allPaths);
+            if (drawing && currentPath.length > 0) drawPaths(ctx, [{ points: currentPath, color: currentColor, size: currentBrushSize }]);
+            ctx.restore();
+        }
+        
+        function startDrawing(e) {
+            if (isPanning) return;
+            const pos = getScreenPosition(e); if (!pos) return;
+            drawing = true; const worldPos = screenToWorld(pos.x, pos.y); currentPath = [worldPos];
+        }
+        function draw(e) {
+            if (!drawing) return;
+            const pos = getScreenPosition(e); if (!pos) return;
+            const worldPos = screenToWorld(pos.x, pos.y); currentPath.push(worldPos);
+            requestAnimationFrame(redrawCanvas);
+        }
+        function stopDrawing() {
+            if (!drawing) return;
+            drawing = false;
+            if (currentPath.length > 1) {
+                const pathData = { points: currentPath, color: currentColor, size: currentBrushSize };
+                allPaths.push(pathData); savePaths();
+            }
+            currentPath = [];
+        }
+
+        // --- Event Handlers ---
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) startDrawing(e);
+            else { isPanning = true; panStart.x = e.clientX - panOffset.x; panStart.y = e.clientY - panOffset.y; canvas.style.cursor = 'grabbing'; }
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPanning) { panOffset.x = e.clientX - panStart.x; panOffset.y = e.clientY - panStart.y; requestAnimationFrame(redrawCanvas); } 
+            else if (drawing) draw(e);
+        });
+        canvas.addEventListener('mouseup', () => { isPanning = false; canvas.style.cursor = 'crosshair'; stopDrawing(); });
+        canvas.addEventListener('mouseout', () => { isPanning = false; canvas.style.cursor = 'crosshair'; stopDrawing(); });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoom = Math.exp((e.deltaY < 0 ? 1 : -1) * 0.1);
+            const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale * zoom));
+            const mouse = getScreenPosition(e);
+            panOffset.x = mouse.x - (mouse.x - panOffset.x) * (newScale / scale);
+            panOffset.y = mouse.y - (mouse.y - panOffset.y) * (newScale / scale);
+            scale = newScale; requestAnimationFrame(redrawCanvas);
+        });
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) startDrawing(e);
+            else if (e.touches.length === 2) { isPanning = true; initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); panStart.x = getScreenPosition(e).x - panOffset.x; panStart.y = getScreenPosition(e).y - panOffset.y; }
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (drawing && e.touches.length === 1) draw(e);
+            else if (isPanning && e.touches.length === 2) {
+                panOffset.x = getScreenPosition(e).x - panStart.x; panOffset.y = getScreenPosition(e).y - panStart.y;
+                const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const zoom = currentDist / initialPinchDistance;
+                const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale * zoom));
+                const mid = getScreenPosition(e);
+                panOffset.x = mid.x - (mid.x - panOffset.x) * (newScale / scale);
+                panOffset.y = mid.y - (mid.y - panOffset.y) * (newScale / scale);
+                scale = newScale; initialPinchDistance = currentDist; requestAnimationFrame(redrawCanvas);
+            }
+        });
+        canvas.addEventListener('touchend', () => { stopDrawing(); isPanning = false; initialPinchDistance = null; });
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        toggleToolbarButton.addEventListener('click', () => {
+            toolbarContainer.classList.toggle('minimized');
+            saveToolbarState();
+        });
+        clearButton.addEventListener('click', () => { showConfirm("Clear the entire whiteboard?", () => { allPaths = []; savePaths(); requestAnimationFrame(redrawCanvas); }); });
+        resetViewButton.addEventListener('click', () => { scale = 1; panOffset = { x: 0, y: 0 }; requestAnimationFrame(redrawCanvas); });
+        brushSizeSlider.addEventListener('input', (e) => currentBrushSize = e.target.value);
+        colorOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                currentColor = e.target.dataset.color;
+                colorOptions.forEach(o => o.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
+        function showConfirm(message, callback) { confirmMessage.textContent = message; onConfirm = callback; confirmModal.classList.remove('hidden'); }
+        confirmCancel.addEventListener('click', () => confirmModal.classList.add('hidden'));
+        confirmOk.addEventListener('click', () => { if (onConfirm) onConfirm(); confirmModal.classList.add('hidden'); });
+
+        // --- Export ---
+        function updateExportButtonState() {
+            const hasContent = allPaths.length > 0;
+            exportPNGButton.disabled = !hasContent;
+            exportJPGButton.disabled = !hasContent;
+            clearButton.disabled = !hasContent;
+        }
+
+        function exportCanvas(format) {
+            if (allPaths.length === 0) return;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            allPaths.forEach(path => path.points.forEach(p => {
+                minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+            }));
+            const padding = 20;
+            const exportCanvas = document.createElement('canvas');
+            const exportCtx = exportCanvas.getContext('2d');
+            exportCanvas.width = maxX - minX + padding * 2;
+            exportCanvas.height = maxY - minY + padding * 2;
+            exportCtx.fillStyle = '#ffffff';
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+            drawPaths(exportCtx, allPaths, { offsetX: -minX + padding, offsetY: -minY + padding });
+            const link = document.createElement('a');
+            link.href = exportCanvas.toDataURL(`image/${format}`, format === 'jpeg' ? 0.9 : 1.0);
+            link.download = `whiteboard-export.${format}`;
+            link.click();
+        }
+
+        exportPNGButton.addEventListener('click', () => exportCanvas('png'));
+        exportJPGButton.addEventListener('click', () => exportCanvas('jpeg'));
+
+        // --- Init ---
+        function init() {
+            loadPaths();
+            loadToolbarState();
+            resizeCanvas();
+        }
+
+        init();
+    </script>
+</body>
+</html>
