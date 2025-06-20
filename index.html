@@ -252,7 +252,6 @@
                 context.fillStyle = path.color;
                 if (path.tool === 'marker' || path.tool === 'eraser') context.globalAlpha = 0.8;
 
-                // Use an interpolation method for high quality strokes
                 for (let i = 0; i < path.points.length - 1; i++) {
                     const p1 = path.points[i];
                     const p2 = path.points[i + 1];
@@ -260,9 +259,11 @@
                     const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
                     const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 
-                    for (let j = 0; j < dist; j++) {
+                    // Stamp circles along the line segment for a smoother result
+                    for (let j = 0; j < dist; j += 0.5) { // Step by less than 1 pixel for smoothness
                         const x = p1.x + Math.cos(angle) * j;
                         const y = p1.y + Math.sin(angle) * j;
+                        // Interpolate size
                         const size = p1.size + (p2.size - p1.size) * (j / dist);
                         
                         context.beginPath();
@@ -348,12 +349,15 @@
             clearSelection();
 
             if (activePointers.length === 1) { // Single finger/pen/mouse
+                 const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+                 const firstEvent = events[0];
+                 const worldPos = screenToWorld(firstEvent.clientX, firstEvent.clientY);
                 if (currentTool === 'lasso') {
                     isLassoing = true;
                     lassoPath = [worldPos];
                 } else {
                     drawing = true;
-                    currentPath = [{ x: worldPos.x, y: worldPos.y, size: getBrushSize(e) }];
+                    currentPath = [{ x: worldPos.x, y: worldPos.y, size: getBrushSize(firstEvent) }];
                 }
             } else if (activePointers.length === 2) { // Two fingers for pinch/pan
                 drawing = false; // Stop drawing if a second finger is added
@@ -404,11 +408,15 @@
                 initialPinchDistance = currentPinchDistance;
                 panStart = midPoint;
             } else if (activePointers.length === 1) { // Single finger move
-                if (isLassoing) {
-                    lassoPath.push(worldPos);
-                } else if (drawing) {
-                    currentPath.push({ x: worldPos.x, y: worldPos.y, size: getBrushSize(e) });
-                }
+                const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+                events.forEach(event => {
+                     const worldPos = screenToWorld(event.clientX, event.clientY);
+                    if (isLassoing) {
+                        lassoPath.push(worldPos);
+                    } else if (drawing) {
+                        currentPath.push({ x: worldPos.x, y: worldPos.y, size: getBrushSize(event) });
+                    }
+                });
             }
             requestAnimationFrame(redrawCanvas);
         }
