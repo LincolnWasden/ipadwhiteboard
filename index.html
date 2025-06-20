@@ -313,13 +313,13 @@
 
         // --- Selection & Transformation Logic ---
         function getBrushSize(e) {
-            let pressure = e.pressure > 0 ? e.pressure : 0.5; if (e.pointerType === 'mouse') pressure = 1.0;
+            // Remove pressure sensitivity. Size is now based on slider and tilt.
             let tiltFactor = 1.0;
             if (e.pointerType === 'pen' && (currentTool === 'marker' || currentTool === 'ballpoint')) {
                 tiltFactor = Math.sin(Math.abs(e.tiltY) * (Math.PI / 180));
                 tiltFactor = Math.max(0.4, tiltFactor) * 1.25; 
             }
-            return Math.max(0.5, currentBrushSize * (pressure * tiltFactor));
+            return Math.max(0.5, currentBrushSize * tiltFactor);
         }
         
         // --- Pointer/Touch Event Handlers ---
