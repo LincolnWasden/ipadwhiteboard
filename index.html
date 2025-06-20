@@ -3,144 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinite Whiteboard (Local Storage)</title>
+    <title>E-Reader Whiteboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Vollkorn', serif;
             overflow: hidden;
-        }
-        #toolbar-container {
-            position: absolute;
-            top: 50%;
-            left: 1rem;
-            transform: translateY(-50%);
-            z-index: 10;
-            display: flex;
-            align-items: center;
-        }
-        #toolbar {
-            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, width 0.3s ease-in-out, padding 0.3s ease-in-out, margin 0.3s ease-in-out;
-            transform-origin: left;
-            overflow: hidden;
-        }
-        #toolbar-container.minimized #toolbar {
-            transform: scaleX(0);
-            opacity: 0;
-            pointer-events: none;
-            width: 0;
-            padding: 0;
-            margin: 0;
-        }
-        #toggle-toolbar {
-            transition: transform 0.3s ease-in-out, margin-left 0.3s ease-in-out;
-            margin-left: 0.5rem; /* Equivalent to ml-2 */
-        }
-        #toolbar-container.minimized #toggle-toolbar {
-            transform: rotate(180deg);
-            margin-left: 0;
-        }
-        .color-option {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid white;
-            transition: transform 0.1s ease-in-out;
-        }
-        .color-option.active {
-            transform: scale(1.2);
-            box-shadow: 0 0 0 3px var(--color-val);
+            background-color: #f7f7f7;
         }
         #whiteboard {
             display: block;
-            touch-action: none; /* Prevents default touch actions */
+            touch-action: none;
             cursor: crosshair;
-            background-color: #ffffff;
+            background-color: #fdfdfd;
         }
-        .export-button:disabled, .action-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .tooltip {
+        #ui-container {
             position: absolute;
-            left: 120%;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: #1f2937;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        #ui-container.hidden {
             opacity: 0;
-            transition: opacity 0.2s;
+            transform: translateY(-100%);
             pointer-events: none;
         }
-        .action-button:hover .tooltip {
-            opacity: 1;
+        .tool-button {
+            position: relative;
+            padding-bottom: 8px;
+            color: #888;
+        }
+        .tool-button.active {
+            color: #111;
+        }
+        .tool-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            right: 25%;
+            height: 2px;
+            background-color: #111;
+        }
+        .action-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        /* Custom range slider styles */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 2px;
+            cursor: pointer;
+            background: #ddd;
+            border-radius: 1px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            border: 1px solid #111;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #fdfdfd;
+            cursor: pointer;
+            margin-top: -7px;
+        }
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 2px;
+            cursor: pointer;
+            background: #ddd;
+            border-radius: 1px;
+        }
+        input[type=range]::-moz-range-thumb {
+            border: 1px solid #111;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #fdfdfd;
+            cursor: pointer;
         }
     </style>
 </head>
 <body class="bg-gray-100">
 
-    <div id="app" class="w-screen h-screen flex flex-col items-center justify-center">
+    <div id="app" class="w-screen h-screen">
         <!-- Toolbar -->
-        <div id="toolbar-container">
-            <div id="toolbar" class="bg-white p-3 rounded-xl shadow-lg flex flex-col items-center space-y-4">
-                <!-- Colors -->
-                <div class="flex flex-col space-y-2">
-                    <div class="color-option active" style="--color-val: #000000; background-color: #000000;" data-color="#000000"></div>
-                    <div class="color-option" style="--color-val: #EF4444; background-color: #EF4444;" data-color="#EF4444"></div>
-                    <div class="color-option" style="--color-val: #3B82F6; background-color: #3B82F6;" data-color="#3B82F6"></div>
-                    <div class="color-option" style="--color-val: #22C55E; background-color: #22C55E;" data-color="#22C55E"></div>
-                    <div class="color-option" style="--color-val: #F97316; background-color: #F97316;" data-color="#F97316"></div>
+        <div id="ui-container">
+            <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 p-2 flex items-center justify-between">
+                <!-- Left: Tools -->
+                <div class="flex items-center space-x-6">
+                    <button class="tool-button active" data-tool="fineliner">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.06 7.94L16.06 4.94L4.94 16.06L7.94 19.06L19.06 7.94ZM20.47 6.53L17.47 3.53C17.08 3.14 16.45 3.14 16.06 3.53L14.65 4.94L19.06 9.35L20.47 7.94C20.86 7.55 20.86 6.92 20.47 6.53ZM3.53 17.47L9.35 19.06L4.94 14.65L3.53 17.47Z"/></svg>
+                    </button>
+                    <button class="tool-button" data-tool="ballpoint">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 9.38L14.62 4.7L4.7 14.62L9.38 19.3L19.3 9.38ZM20.71 7.96C21.1 7.57 21.1 6.95 20.71 6.56L17.44 3.29C17.05 2.9 16.42 2.9 16.03 3.29L14.2 5.12L18.88 9.8L20.71 7.96ZM3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z"/></svg>
+                    </button>
+                    <button class="tool-button" data-tool="marker">
+                         <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.37,2.81L19.18,3.62C19.57,4 19.57,4.67 19.18,5.06L17.77,6.47L13.53,2.23L14.94,0.82C15.33,0.43 16,0.43 16.39,0.82L18.37,2.81M1.39,18.4L13.13,6.66L17.37,10.9L5.63,22.64L1,23L1.39,18.4Z" /></svg>
+                    </button>
+                    <button class="tool-button" data-tool="eraser">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.24,3.56L20.44,7.76L11.25,16.95L7.05,12.75L16.24,3.56M22.5,9.22L20.28,11.44L12.56,3.72L14.78,1.5L22.5,9.22M5.58,14.22L9.78,18.42L8.31,19.89C8.12,20.08 7.87,20.19 7.61,20.19C7.35,20.19 7.1,20.08 6.91,19.89L2.11,15.09C1.72,14.7 1.72,14.07 2.11,13.68L3.58,12.21L5.58,14.22Z" /></svg>
+                    </button>
+                    <div class="w-48 px-4">
+                        <input type="range" id="brushSize" min="1" max="50" value="5">
+                    </div>
                 </div>
-                <!-- Divider -->
-                <div class="w-8 h-px bg-gray-200"></div>
-                <!-- Brush Size -->
-                <div class="flex flex-col items-center space-y-2">
-                    <label for="brushSize" class="text-xs font-medium text-gray-500">Size</label>
-                    <input type="range" id="brushSize" min="1" max="50" value="5" class="w-20 cursor-pointer" style="writing-mode: vertical-lr; direction: rtl;">
-                </div>
-                <!-- Divider -->
-                <div class="w-8 h-px bg-gray-200"></div>
-                <!-- Actions -->
-                <div class="flex flex-col space-y-2">
-                    <button id="clearButton" class="action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-red-400">
+
+                <!-- Right: Actions -->
+                <div class="flex items-center space-x-4">
+                    <button id="clearButton" class="action-button p-2 rounded-full hover:bg-gray-200">
                         <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        <span class="tooltip">Clear All</span>
                     </button>
-                    <button id="resetViewButton" class="action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5"></path></svg>
-                        <span class="tooltip">Reset View</span>
-                    </button>
-                    <button id="exportPNGButton" class="export-button action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400">
+                    <button id="exportPNGButton" class="action-button p-2 rounded-full hover:bg-gray-200">
                          <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span class="tooltip">Export PNG</span>
                     </button>
-                    <button id="exportJPGButton" class="export-button action-button relative p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-green-400">
-                         <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span class="tooltip">Export JPG</span>
+                    <button id="toggleUiButton" class="p-2 rounded-full hover:bg-gray-200">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                     </button>
                 </div>
             </div>
-            <button id="toggle-toolbar" class="bg-white p-2 rounded-full shadow-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400">
-                <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
         </div>
 
         <!-- Whiteboard Canvas -->
         <canvas id="whiteboard"></canvas>
         
         <!-- Confirmation Modal -->
-        <div id="confirmModal" class="hidden absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-            <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
-                <p id="confirmMessage" class="mb-4 text-lg">Are you sure?</p>
+        <div id="confirmModal" class="hidden absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-30">
+            <div class="bg-white p-8 rounded-md shadow-lg text-center max-w-sm border border-gray-200">
+                <p id="confirmMessage" class="mb-6 text-lg text-gray-800">Are you sure?</p>
                 <div class="flex justify-center space-x-4">
-                    <button id="confirmCancel" class="px-6 py-2 rounded-lg text-gray-700 bg-gray-200 hover:bg-gray-300">Cancel</button>
-                    <button id="confirmOk" class="px-6 py-2 rounded-lg text-white bg-red-500 hover:bg-red-600">Confirm</button>
+                    <button id="confirmCancel" class="px-8 py-2 rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300">Cancel</button>
+                    <button id="confirmOk" class="px-8 py-2 rounded-md text-white bg-gray-800 hover:bg-black">Confirm</button>
                 </div>
             </div>
         </div>
@@ -150,49 +156,45 @@
         // --- DOM Elements ---
         const canvas = document.getElementById('whiteboard');
         const ctx = canvas.getContext('2d');
-        const toolbarContainer = document.getElementById('toolbar-container');
-        const toggleToolbarButton = document.getElementById('toggle-toolbar');
+        const uiContainer = document.getElementById('ui-container');
+        const toggleUiButton = document.getElementById('toggleUiButton');
         const clearButton = document.getElementById('clearButton');
         const brushSizeSlider = document.getElementById('brushSize');
-        const colorOptions = document.querySelectorAll('.color-option');
+        const toolButtons = document.querySelectorAll('.tool-button');
         const confirmModal = document.getElementById('confirmModal');
         const confirmMessage = document.getElementById('confirmMessage');
         const confirmOk = document.getElementById('confirmOk');
         const confirmCancel = document.getElementById('confirmCancel');
-        const resetViewButton = document.getElementById('resetViewButton');
         const exportPNGButton = document.getElementById('exportPNGButton');
-        const exportJPGButton = document.getElementById('exportJPGButton');
 
         // --- State ---
         let drawing = false;
-        let currentColor = '#000000';
-        let currentBrushSize = 5;
+        let currentTool = 'fineliner';
+        let currentColor = '#111111';
+        let currentBrushSize = 2;
         let currentPath = [];
         let onConfirm = null;
         let allPaths = [];
         let scale = 1, panOffset = { x: 0, y: 0 };
         let isPanning = false, panStart = { x: 0, y: 0 };
         let initialPinchDistance = null;
-        const MAX_ZOOM = 10, MIN_ZOOM = 0.1;
-        const PATHS_STORAGE_KEY = 'infiniteWhiteboardPaths';
-        const TOOLBAR_STATE_KEY = 'infiniteWhiteboardToolbarState';
+        const PATHS_STORAGE_KEY = 'eReaderWhiteboardPaths';
+        const TOOL_SETTINGS = {
+            fineliner: { baseSize: 1, color: '#111111' },
+            ballpoint: { baseSize: 2, color: '#333333' },
+            marker: { baseSize: 10, color: '#555555' },
+            eraser: { baseSize: 20, color: '#fdfdfd' }
+        };
 
-        // --- Local Storage & State Management ---
+        // --- Local Storage ---
         function savePaths() {
             localStorage.setItem(PATHS_STORAGE_KEY, JSON.stringify(allPaths));
-            updateExportButtonState();
+            updateActionButtonState();
         }
         function loadPaths() {
             const saved = localStorage.getItem(PATHS_STORAGE_KEY);
             if (saved) allPaths = JSON.parse(saved);
-            updateExportButtonState();
-        }
-        function saveToolbarState() {
-            localStorage.setItem(TOOLBAR_STATE_KEY, toolbarContainer.classList.contains('minimized'));
-        }
-        function loadToolbarState() {
-            const isMinimized = localStorage.getItem(TOOLBAR_STATE_KEY) === 'true';
-            if (isMinimized) toolbarContainer.classList.add('minimized');
+            updateActionButtonState();
         }
 
         // --- Canvas & Drawing ---
@@ -209,32 +211,30 @@
         }
         function screenToWorld(x, y) { return { x: (x - panOffset.x) / scale, y: (y - panOffset.y) / scale }; }
 
-        function drawGrid() {
-            ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1 / scale;
-            const gridSize = 50; const origin = screenToWorld(0, 0);
-            const startX = Math.floor(origin.x / gridSize) * gridSize, startY = Math.floor(origin.y / gridSize) * gridSize;
-            const endX = (canvas.width - panOffset.x) / scale, endY = (canvas.height - panOffset.y) / scale;
-            for(let x = startX; x < endX; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke(); }
-            for(let y = startY; y < endY; y += gridSize) { ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke(); }
-        }
-
         function drawPaths(context, paths, options = {}) {
             const { offsetX = 0, offsetY = 0 } = options;
             paths.forEach(path => {
                 if (!path || !path.points || path.points.length < 1) return;
-                context.beginPath(); context.moveTo(path.points[0].x + offsetX, path.points[0].y + offsetY);
-                context.strokeStyle = path.color; context.lineWidth = path.size;
-                context.lineCap = 'round'; context.lineJoin = 'round';
+                context.beginPath();
+                context.moveTo(path.points[0].x + offsetX, path.points[0].y + offsetY);
+                context.strokeStyle = path.color;
+                context.lineWidth = path.size;
+                context.lineCap = 'round';
+                context.lineJoin = 'round';
+                if (path.tool === 'marker' || path.tool === 'eraser') {
+                    context.globalAlpha = 0.8;
+                }
                 for (let i = 1; i < path.points.length; i++) context.lineTo(path.points[i].x + offsetX, path.points[i].y + offsetY);
                 context.stroke();
+                context.globalAlpha = 1.0;
             });
         }
 
         function redrawCanvas() {
             ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.restore();
             ctx.save(); ctx.translate(panOffset.x, panOffset.y); ctx.scale(scale, scale);
-            drawGrid(); drawPaths(ctx, allPaths);
-            if (drawing && currentPath.length > 0) drawPaths(ctx, [{ points: currentPath, color: currentColor, size: currentBrushSize }]);
+            drawPaths(ctx, allPaths);
+            if (drawing && currentPath.length > 0) drawPaths(ctx, [{ points: currentPath, color: currentColor, size: currentBrushSize, tool: currentTool }]);
             ctx.restore();
         }
         
@@ -253,7 +253,7 @@
             if (!drawing) return;
             drawing = false;
             if (currentPath.length > 1) {
-                const pathData = { points: currentPath, color: currentColor, size: currentBrushSize };
+                const pathData = { points: currentPath, color: currentColor, size: currentBrushSize, tool: currentTool };
                 allPaths.push(pathData); savePaths();
             }
             currentPath = [];
@@ -261,6 +261,10 @@
 
         // --- Event Handlers ---
         canvas.addEventListener('mousedown', (e) => {
+            if (uiContainer.classList.contains('hidden')) {
+                uiContainer.classList.remove('hidden');
+                return;
+            }
             if (e.button === 0) startDrawing(e);
             else { isPanning = true; panStart.x = e.clientX - panOffset.x; panStart.y = e.clientY - panOffset.y; canvas.style.cursor = 'grabbing'; }
         });
@@ -273,7 +277,7 @@
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             const zoom = Math.exp((e.deltaY < 0 ? 1 : -1) * 0.1);
-            const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale * zoom));
+            const newScale = Math.max(0.1, Math.min(10, scale * zoom));
             const mouse = getScreenPosition(e);
             panOffset.x = mouse.x - (mouse.x - panOffset.x) * (newScale / scale);
             panOffset.y = mouse.y - (mouse.y - panOffset.y) * (newScale / scale);
@@ -281,6 +285,7 @@
         });
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            if (uiContainer.classList.contains('hidden')) { uiContainer.classList.remove('hidden'); return; }
             if (e.touches.length === 1) startDrawing(e);
             else if (e.touches.length === 2) { isPanning = true; initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); panStart.x = getScreenPosition(e).x - panOffset.x; panStart.y = getScreenPosition(e).y - panOffset.y; }
         });
@@ -291,7 +296,7 @@
                 panOffset.x = getScreenPosition(e).x - panStart.x; panOffset.y = getScreenPosition(e).y - panStart.y;
                 const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const zoom = currentDist / initialPinchDistance;
-                const newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale * zoom));
+                const newScale = Math.max(0.1, Math.min(10, scale * zoom));
                 const mid = getScreenPosition(e);
                 panOffset.x = mid.x - (mid.x - panOffset.x) * (newScale / scale);
                 panOffset.y = mid.y - (mid.y - panOffset.y) * (newScale / scale);
@@ -301,29 +306,34 @@
         canvas.addEventListener('touchend', () => { stopDrawing(); isPanning = false; initialPinchDistance = null; });
         canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-        toggleToolbarButton.addEventListener('click', () => {
-            toolbarContainer.classList.toggle('minimized');
-            saveToolbarState();
+        toggleUiButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            uiContainer.classList.add('hidden');
         });
-        clearButton.addEventListener('click', () => { showConfirm("Clear the entire whiteboard?", () => { allPaths = []; savePaths(); requestAnimationFrame(redrawCanvas); }); });
-        resetViewButton.addEventListener('click', () => { scale = 1; panOffset = { x: 0, y: 0 }; requestAnimationFrame(redrawCanvas); });
-        brushSizeSlider.addEventListener('input', (e) => currentBrushSize = e.target.value);
-        colorOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                currentColor = e.target.dataset.color;
-                colorOptions.forEach(o => o.classList.remove('active'));
-                e.target.classList.add('active');
+        clearButton.addEventListener('click', () => { showConfirm("Clear the entire page?", () => { allPaths = []; savePaths(); requestAnimationFrame(redrawCanvas); }); });
+        
+        toolButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentTool = button.dataset.tool;
+                const settings = TOOL_SETTINGS[currentTool];
+                currentColor = settings.color;
+                brushSizeSlider.value = settings.baseSize;
+                currentBrushSize = settings.baseSize;
             });
         });
+        
+        brushSizeSlider.addEventListener('input', (e) => currentBrushSize = e.target.value);
+
         function showConfirm(message, callback) { confirmMessage.textContent = message; onConfirm = callback; confirmModal.classList.remove('hidden'); }
         confirmCancel.addEventListener('click', () => confirmModal.classList.add('hidden'));
         confirmOk.addEventListener('click', () => { if (onConfirm) onConfirm(); confirmModal.classList.add('hidden'); });
 
         // --- Export ---
-        function updateExportButtonState() {
+        function updateActionButtonState() {
             const hasContent = allPaths.length > 0;
             exportPNGButton.disabled = !hasContent;
-            exportJPGButton.disabled = !hasContent;
             clearButton.disabled = !hasContent;
         }
 
@@ -334,28 +344,34 @@
                 minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
                 maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
             }));
-            const padding = 20;
+            const padding = 40;
             const exportCanvas = document.createElement('canvas');
             const exportCtx = exportCanvas.getContext('2d');
             exportCanvas.width = maxX - minX + padding * 2;
             exportCanvas.height = maxY - minY + padding * 2;
-            exportCtx.fillStyle = '#ffffff';
+            exportCtx.fillStyle = '#fdfdfd';
             exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
             drawPaths(exportCtx, allPaths, { offsetX: -minX + padding, offsetY: -minY + padding });
             const link = document.createElement('a');
-            link.href = exportCanvas.toDataURL(`image/${format}`, format === 'jpeg' ? 0.9 : 1.0);
+            link.href = exportCanvas.toDataURL(`image/${format}`, 1.0);
             link.download = `whiteboard-export.${format}`;
             link.click();
         }
 
         exportPNGButton.addEventListener('click', () => exportCanvas('png'));
-        exportJPGButton.addEventListener('click', () => exportCanvas('jpeg'));
 
         // --- Init ---
         function init() {
             loadPaths();
-            loadToolbarState();
             resizeCanvas();
+            // Set initial tool
+            const initialTool = 'fineliner';
+            document.querySelector(`.tool-button[data-tool="${initialTool}"]`).classList.add('active');
+            currentTool = initialTool;
+            const settings = TOOL_SETTINGS[initialTool];
+            currentColor = settings.color;
+            brushSizeSlider.value = settings.baseSize;
+            currentBrushSize = settings.baseSize;
         }
 
         init();
