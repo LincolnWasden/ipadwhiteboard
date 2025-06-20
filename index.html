@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Reader Whiteboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
@@ -34,13 +33,6 @@
             transform: translateY(-100%);
             pointer-events: none;
         }
-        #page-controls {
-            position: absolute;
-            bottom: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-        }
         .tool-button {
             position: relative;
             padding-bottom: 8px;
@@ -62,20 +54,7 @@
             opacity: 0.4;
             cursor: not-allowed;
         }
-        #export-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: white;
-            border: 1px solid #eee;
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            z-index: 20;
-        }
-        #export-menu.visible {
-            display: block;
-        }
+        /* Custom range slider styles */
         input[type=range] {
             -webkit-appearance: none;
             width: 100%;
@@ -101,6 +80,21 @@
             cursor: pointer;
             margin-top: -7px;
         }
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 2px;
+            cursor: pointer;
+            background: #ddd;
+            border-radius: 1px;
+        }
+        input[type=range]::-moz-range-thumb {
+            border: 1px solid #111;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #fdfdfd;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -110,44 +104,43 @@
         <div id="ui-container">
             <div class="bg-white/80 backdrop-blur-sm border-b border-gray-200 p-2 flex items-center justify-between">
                 <!-- Left: Tools -->
-                <div class="flex items-center space-x-6 pl-4">
-                    <button class="tool-button active" data-tool="fineliner"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.06 7.94L16.06 4.94L4.94 16.06L7.94 19.06L19.06 7.94ZM20.47 6.53L17.47 3.53C17.08 3.14 16.45 3.14 16.06 3.53L14.65 4.94L19.06 9.35L20.47 7.94C20.86 7.55 20.86 6.92 20.47 6.53ZM3.53 17.47L9.35 19.06L4.94 14.65L3.53 17.47Z"/></svg></button>
-                    <button class="tool-button" data-tool="ballpoint"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 9.38L14.62 4.7L4.7 14.62L9.38 19.3L19.3 9.38ZM20.71 7.96C21.1 7.57 21.1 6.95 20.71 6.56L17.44 3.29C17.05 2.9 16.42 2.9 16.03 3.29L14.2 5.12L18.88 9.8L20.71 7.96ZM3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z"/></svg></button>
-                    <button class="tool-button" data-tool="marker"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.37,2.81L19.18,3.62C19.57,4 19.57,4.67 19.18,5.06L17.77,6.47L13.53,2.23L14.94,0.82C15.33,0.43 16,0.43 16.39,0.82L18.37,2.81M1.39,18.4L13.13,6.66L17.37,10.9L5.63,22.64L1,23L1.39,18.4Z" /></svg></button>
-                    <button class="tool-button" data-tool="eraser"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.24,3.56L20.44,7.76L11.25,16.95L7.05,12.75L16.24,3.56M22.5,9.22L20.28,11.44L12.56,3.72L14.78,1.5L22.5,9.22M5.58,14.22L9.78,18.42L8.31,19.89C8.12,20.08 7.87,20.19 7.61,20.19C7.35,20.19 7.1,20.08 6.91,19.89L2.11,15.09C1.72,14.7 1.72,14.07 2.11,13.68L3.58,12.21L5.58,14.22Z" /></svg></button>
-                     <button class="tool-button" data-tool="lasso"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.75h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5-13.5h16.5a2.25 2.25 0 0 1 2.25 2.25v1.5a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 12.75v-1.5A2.25 2.25 0 0 1 3.75 9m0-1.5V6a2.25 2.25 0 0 1 2.25-2.25h1.5A2.25 2.25 0 0 1 9.75 6v1.5m6 0V6A2.25 2.25 0 0 0 13.5 3.75h-1.5A2.25 2.25 0 0 0 9.75 6v1.5" /></svg></button>
-                    <div class="w-48 px-4"><input type="range" id="brushSize" min="1" max="50" value="5"></div>
+                <div class="flex items-center space-x-6">
+                    <button class="tool-button active" data-tool="fineliner">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.06 7.94L16.06 4.94L4.94 16.06L7.94 19.06L19.06 7.94ZM20.47 6.53L17.47 3.53C17.08 3.14 16.45 3.14 16.06 3.53L14.65 4.94L19.06 9.35L20.47 7.94C20.86 7.55 20.86 6.92 20.47 6.53ZM3.53 17.47L9.35 19.06L4.94 14.65L3.53 17.47Z"/></svg>
+                    </button>
+                    <button class="tool-button" data-tool="ballpoint">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M19.3 9.38L14.62 4.7L4.7 14.62L9.38 19.3L19.3 9.38ZM20.71 7.96C21.1 7.57 21.1 6.95 20.71 6.56L17.44 3.29C17.05 2.9 16.42 2.9 16.03 3.29L14.2 5.12L18.88 9.8L20.71 7.96ZM3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z"/></svg>
+                    </button>
+                    <button class="tool-button" data-tool="marker">
+                         <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.37,2.81L19.18,3.62C19.57,4 19.57,4.67 19.18,5.06L17.77,6.47L13.53,2.23L14.94,0.82C15.33,0.43 16,0.43 16.39,0.82L18.37,2.81M1.39,18.4L13.13,6.66L17.37,10.9L5.63,22.64L1,23L1.39,18.4Z" /></svg>
+                    </button>
+                    <button class="tool-button" data-tool="eraser">
+                        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.24,3.56L20.44,7.76L11.25,16.95L7.05,12.75L16.24,3.56M22.5,9.22L20.28,11.44L12.56,3.72L14.78,1.5L22.5,9.22M5.58,14.22L9.78,18.42L8.31,19.89C8.12,20.08 7.87,20.19 7.61,20.19C7.35,20.19 7.1,20.08 6.91,19.89L2.11,15.09C1.72,14.7 1.72,14.07 2.11,13.68L3.58,12.21L5.58,14.22Z" /></svg>
+                    </button>
+                    <div class="w-48 px-4">
+                        <input type="range" id="brushSize" min="1" max="50" value="5">
+                    </div>
                 </div>
 
                 <!-- Right: Actions -->
-                <div class="flex items-center space-x-4 pr-4">
-                    <button id="undoButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l4-4m-4 4l4 4"></path></svg></button>
-                    <button id="redoButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-4-4m4 4l-4 4"></path></svg></button>
-                    <div class="h-6 w-px bg-gray-200"></div>
-                     <input type="file" id="imageUpload" accept="image/*" class="hidden">
-                    <button id="uploadImageButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.158 0a.079.079 0 0 1 .079.079v.008a.079.079 0 0 1-.079.079h-.008a.079.079 0 0 1-.079-.079v-.008a.079.079 0 0 1 .079-.079h.008Z" /></svg></button>
-                    <button id="clearButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-                    <div id="export-container" class="relative">
-                        <button id="exportButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
-                        <div id="export-menu" class="w-48">
-                            <button id="exportFullPNGButton" class="text-left w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export Full (PNG)</button>
-                            <button id="exportViewPNGButton" class="text-left w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export View (PNG)</button>
-                            <button id="exportFullJPGButton" class="text-left w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export Full (JPG)</button>
-                            <button id="exportFullPDFButton" class="text-left w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Export Full (PDF)</button>
-                        </div>
-                    </div>
-                    <button id="toggleUiButton" class="p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button>
+                <div class="flex items-center space-x-4">
+                    <button id="clearButton" class="action-button p-2 rounded-full hover:bg-gray-200">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    <button id="exportPNGButton" class="action-button p-2 rounded-full hover:bg-gray-200">
+                         <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </button>
+                    <button id="toggleUiButton" class="p-2 rounded-full hover:bg-gray-200">
+                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    </button>
                 </div>
             </div>
         </div>
+
+        <!-- Whiteboard Canvas -->
         <canvas id="whiteboard"></canvas>
-        <div id="page-controls" class="flex items-center space-x-4 bg-white/80 backdrop-blur-sm px-4 py-1 rounded-full border border-gray-200">
-            <button id="prevPageButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
-            <span id="pageIndicator" class="text-sm text-gray-600">1 / 1</span>
-            <button id="nextPageButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
-            <div class="h-6 w-px bg-gray-200"></div>
-            <button id="newPageButton" class="action-button p-2 rounded-full hover:bg-gray-200"><svg class="w-6 h-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></button>
-        </div>
+        
+        <!-- Confirmation Modal -->
         <div id="confirmModal" class="hidden absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-30">
             <div class="bg-white p-8 rounded-md shadow-lg text-center max-w-sm border border-gray-200">
                 <p id="confirmMessage" class="mb-6 text-lg text-gray-800">Are you sure?</p>
@@ -161,381 +154,226 @@
 
     <script>
         // --- DOM Elements ---
-        const canvas = document.getElementById('whiteboard'), ctx = canvas.getContext('2d');
-        const uiContainer = document.getElementById('ui-container'), toggleUiButton = document.getElementById('toggleUiButton');
-        const clearButton = document.getElementById('clearButton'), brushSizeSlider = document.getElementById('brushSize'), toolButtons = document.querySelectorAll('.tool-button');
-        const confirmModal = document.getElementById('confirmModal'), confirmMessage = document.getElementById('confirmMessage'), confirmOk = document.getElementById('confirmOk'), confirmCancel = document.getElementById('confirmCancel');
-        const exportContainer = document.getElementById('export-container'), exportButton = document.getElementById('exportButton'), exportMenu = document.getElementById('export-menu');
-        const exportFullPNGButton = document.getElementById('exportFullPNGButton'), exportViewPNGButton = document.getElementById('exportViewPNGButton');
-        const exportFullJPGButton = document.getElementById('exportFullJPGButton'), exportFullPDFButton = document.getElementById('exportFullPDFButton');
-        const undoButton = document.getElementById('undoButton'), redoButton = document.getElementById('redoButton');
-        const uploadImageButton = document.getElementById('uploadImageButton'), imageUploadInput = document.getElementById('imageUpload');
-        const pageControls = document.getElementById('page-controls'), prevPageButton = document.getElementById('prevPageButton'), nextPageButton = document.getElementById('nextPageButton'), newPageButton = document.getElementById('newPageButton'), pageIndicator = document.getElementById('pageIndicator');
+        const canvas = document.getElementById('whiteboard');
+        const ctx = canvas.getContext('2d');
+        const uiContainer = document.getElementById('ui-container');
+        const toggleUiButton = document.getElementById('toggleUiButton');
+        const clearButton = document.getElementById('clearButton');
+        const brushSizeSlider = document.getElementById('brushSize');
+        const toolButtons = document.querySelectorAll('.tool-button');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmOk = document.getElementById('confirmOk');
+        const confirmCancel = document.getElementById('confirmCancel');
+        const exportPNGButton = document.getElementById('exportPNGButton');
 
         // --- State ---
-        let notebook = { pages: [], currentPageIndex: 0 };
-        let drawing = false, currentTool = 'fineliner', currentColor = '#111111', currentBrushSize = 2, currentPath = [];
-        let onConfirm = null, history = [], redoStack = [];
+        let drawing = false;
+        let currentTool = 'fineliner';
+        let currentColor = '#111111';
+        let currentBrushSize = 2;
+        let currentPath = [];
+        let onConfirm = null;
+        let allPaths = [];
         let scale = 1, panOffset = { x: 0, y: 0 };
-        let activePointers = [];
+        let isPanning = false, panStart = { x: 0, y: 0 };
         let initialPinchDistance = null;
-        let isLassoing = false, lassoPath = [], selection = { paths: [], box: null, transform: null };
-        let selectionAction = { type: null, startPoint: null };
-        let loadedImageElements = {}; // Cache for image elements
-        const NOTEBOOK_STORAGE_KEY = 'eReaderNotebook';
+        const PATHS_STORAGE_KEY = 'eReaderWhiteboardPaths';
         const TOOL_SETTINGS = {
-            fineliner: { baseSize: 2, color: '#111111' }, ballpoint: { baseSize: 4, color: '#333333' },
-            marker: { baseSize: 20, color: '#555555' }, eraser: { baseSize: 30, color: '#fdfdfd' },
-            lasso: { baseSize: 1, color: '#007aff'}
+            fineliner: { baseSize: 1, color: '#111111' },
+            ballpoint: { baseSize: 2, color: '#333333' },
+            marker: { baseSize: 10, color: '#555555' },
+            eraser: { baseSize: 20, color: '#fdfdfd' }
         };
 
-        // --- History & Storage ---
-        function updateHistory(currentState) { history.push(JSON.parse(JSON.stringify(currentState))); redoStack = []; updateActionButtonState(); }
-        function undo() { if (history.length > 0) { redoStack.push(JSON.parse(JSON.stringify(notebook))); notebook = history.pop(); clearSelection(); updatePageUI(); requestAnimationFrame(redrawCanvas); saveNotebook(); } }
-        function redo() { if (redoStack.length > 0) { history.push(JSON.parse(JSON.stringify(notebook))); notebook = redoStack.pop(); clearSelection(); updatePageUI(); requestAnimationFrame(redrawCanvas); saveNotebook(); } }
-        function saveNotebook() { localStorage.setItem(NOTEBOOK_STORAGE_KEY, JSON.stringify(notebook)); updateActionButtonState(); }
-        function loadNotebook() {
-            const saved = localStorage.getItem(NOTEBOOK_STORAGE_KEY);
-            if (saved) {
-                notebook = JSON.parse(saved);
-                if (!notebook.pages || notebook.pages.length === 0) {
-                    notebook = { pages: [createNewPage()], currentPageIndex: 0 };
-                }
-            } else {
-                notebook = { pages: [createNewPage()], currentPageIndex: 0 };
-            }
-            history = []; redoStack = [];
-            updatePageUI();
+        // --- Local Storage ---
+        function savePaths() {
+            localStorage.setItem(PATHS_STORAGE_KEY, JSON.stringify(allPaths));
             updateActionButtonState();
         }
-
-        // --- Page Management ---
-        function createNewPage() { return { paths: [], images: [] }; }
-        function getCurrentPage() { return notebook.pages[notebook.currentPageIndex]; }
-        function goToPage(index) {
-            if (index < 0 || index >= notebook.pages.length) return;
-            clearSelection();
-            notebook.currentPageIndex = index;
-            updatePageUI();
-            requestAnimationFrame(redrawCanvas);
-        }
-        function addNewPage() {
-            updateHistory(notebook);
-            const newPage = createNewPage();
-            notebook.pages.push(newPage);
-            goToPage(notebook.pages.length - 1);
-            saveNotebook();
-        }
-        function updatePageUI() {
-            pageIndicator.textContent = `${notebook.currentPageIndex + 1} / ${notebook.pages.length}`;
-            prevPageButton.disabled = notebook.currentPageIndex === 0;
-            nextPageButton.disabled = notebook.currentPageIndex === notebook.pages.length - 1;
+        function loadPaths() {
+            const saved = localStorage.getItem(PATHS_STORAGE_KEY);
+            if (saved) allPaths = JSON.parse(saved);
+            updateActionButtonState();
         }
 
         // --- Canvas & Drawing ---
         function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; requestAnimationFrame(redrawCanvas); }
         window.addEventListener('resize', resizeCanvas);
-        function screenToWorld(x, y) { return { x: (x - panOffset.x) / scale, y: (y - panOffset.y) / scale }; }
-        function worldToScreen(x, y) { return { x: x * scale + panOffset.x, y: y * scale + panOffset.y }; }
         
+        function getScreenPosition(e) {
+            if (e.touches) {
+                if (e.touches.length === 1) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                if (e.touches.length === 2) return { x: (e.touches[0].clientX + e.touches[1].clientX) / 2, y: (e.touches[0].clientY + e.touches[1].clientY) / 2 };
+                return null;
+            }
+            return { x: e.clientX, y: e.clientY };
+        }
+        function screenToWorld(x, y) { return { x: (x - panOffset.x) / scale, y: (y - panOffset.y) / scale }; }
+
         function drawPaths(context, paths, options = {}) {
             const { offsetX = 0, offsetY = 0 } = options;
-            const transform = options.transform || {dx: 0, dy: 0, sx: 1, sy: 1};
-            
-            context.save();
-            context.translate(transform.dx, transform.dy);
-            context.scale(transform.sx, transform.sy);
-
             paths.forEach(path => {
                 if (!path || !path.points || path.points.length < 1) return;
-                
-                context.fillStyle = path.color;
-                if (path.tool === 'marker' || path.tool === 'eraser') context.globalAlpha = 0.8;
-
-                for (let i = 0; i < path.points.length - 1; i++) {
-                    const p1 = path.points[i];
-                    const p2 = path.points[i + 1];
-                    
-                    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-
-                    // Stamp circles along the line segment for a smoother result
-                    for (let j = 0; j < dist; j += 0.5) { // Step by less than 1 pixel for smoothness
-                        const x = p1.x + Math.cos(angle) * j;
-                        const y = p1.y + Math.sin(angle) * j;
-                        // Interpolate size
-                        const size = p1.size + (p2.size - p1.size) * (j / dist);
-                        
-                        context.beginPath();
-                        context.arc(x + offsetX, y + offsetY, (size / 2) * Math.min(Math.abs(transform.sx), Math.abs(transform.sy)), 0, Math.PI * 2);
-                        context.fill();
-                    }
+                context.beginPath();
+                context.moveTo(path.points[0].x + offsetX, path.points[0].y + offsetY);
+                context.strokeStyle = path.color;
+                context.lineWidth = path.size;
+                context.lineCap = 'round';
+                context.lineJoin = 'round';
+                if (path.tool === 'marker' || path.tool === 'eraser') {
+                    context.globalAlpha = 0.8;
                 }
-                
-                // Handle single-point paths (dots)
-                if (path.points.length === 1) {
-                     context.beginPath();
-                     context.arc(path.points[0].x + offsetX, path.points[0].y + offsetY, (path.points[0].size / 2) * Math.min(Math.abs(transform.sx), Math.abs(transform.sy)), 0, Math.PI * 2);
-                     context.fill();
-                }
-
+                for (let i = 1; i < path.points.length; i++) context.lineTo(path.points[i].x + offsetX, path.points[i].y + offsetY);
+                context.stroke();
                 context.globalAlpha = 1.0;
             });
-            context.restore();
         }
 
-
-        function drawImages(context, images) {
-            images.forEach(imgData => {
-                if (loadedImageElements[imgData.id] && loadedImageElements[imgData.id].complete) {
-                    context.drawImage(loadedImageElements[imgData.id], imgData.x, imgData.y, imgData.width, imgData.height);
-                }
-            });
-        }
-        
-        function drawSelection() { /* ... same as before ... */ }
         function redrawCanvas() {
             ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.restore();
             ctx.save(); ctx.translate(panOffset.x, panOffset.y); ctx.scale(scale, scale);
-            
-            const currentPage = getCurrentPage();
-            drawImages(ctx, currentPage.images);
-            
-            const unselectedPaths = currentPage.paths.filter((_, i) => !selection.paths.includes(i));
-            drawPaths(ctx, unselectedPaths);
-            const selectedPaths = selection.paths.map(i => currentPage.paths[i]);
-            drawPaths(ctx, selectedPaths, { transform: selection.transform });
-            
-            drawSelection();
-            if (drawing && currentTool !== 'lasso' && currentPath.length > 0) drawPaths(ctx, [{ points: currentPath, color: currentColor, tool: currentTool }]);
+            drawPaths(ctx, allPaths);
+            if (drawing && currentPath.length > 0) drawPaths(ctx, [{ points: currentPath, color: currentColor, size: currentBrushSize, tool: currentTool }]);
             ctx.restore();
         }
-
-        // --- Selection & Transformation Logic ---
-        function getBrushSize(e) {
-            // Remove pressure sensitivity. Size is now based on slider and tilt.
-            let tiltFactor = 1.0;
-            if (e.pointerType === 'pen' && (currentTool === 'marker' || currentTool === 'ballpoint')) {
-                tiltFactor = Math.sin(Math.abs(e.tiltY) * (Math.PI / 180));
-                tiltFactor = Math.max(0.4, tiltFactor) * 1.25; 
-            }
-            return Math.max(0.5, currentBrushSize * tiltFactor);
-        }
         
-        // --- Pointer/Touch Event Handlers ---
-        function handlePointerDown(e) {
-            e.preventDefault();
-            activePointers.push(e);
+        function startDrawing(e) {
+            if (isPanning) return;
+            const pos = getScreenPosition(e); if (!pos) return;
+            drawing = true; const worldPos = screenToWorld(pos.x, pos.y); currentPath = [worldPos];
+        }
+        function draw(e) {
+            if (!drawing) return;
+            const pos = getScreenPosition(e); if (!pos) return;
+            const worldPos = screenToWorld(pos.x, pos.y); currentPath.push(worldPos);
+            requestAnimationFrame(redrawCanvas);
+        }
+        function stopDrawing() {
+            if (!drawing) return;
+            drawing = false;
+            if (currentPath.length > 1) {
+                const pathData = { points: currentPath, color: currentColor, size: currentBrushSize, tool: currentTool };
+                allPaths.push(pathData); savePaths();
+            }
+            currentPath = [];
+        }
 
+        // --- Event Handlers ---
+        canvas.addEventListener('mousedown', (e) => {
+            if (uiContainer.classList.contains('hidden')) {
+                uiContainer.classList.remove('hidden');
+                return;
+            }
+            if (e.button === 0) startDrawing(e);
+            else { isPanning = true; panStart.x = e.clientX - panOffset.x; panStart.y = e.clientY - panOffset.y; canvas.style.cursor = 'grabbing'; }
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPanning) { panOffset.x = e.clientX - panStart.x; panOffset.y = e.clientY - panStart.y; requestAnimationFrame(redrawCanvas); } 
+            else if (drawing) draw(e);
+        });
+        canvas.addEventListener('mouseup', () => { isPanning = false; canvas.style.cursor = 'crosshair'; stopDrawing(); });
+        canvas.addEventListener('mouseout', () => { isPanning = false; canvas.style.cursor = 'crosshair'; stopDrawing(); });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoom = Math.exp((e.deltaY < 0 ? 1 : -1) * 0.1);
+            const newScale = Math.max(0.1, Math.min(10, scale * zoom));
+            const mouse = getScreenPosition(e);
+            panOffset.x = mouse.x - (mouse.x - panOffset.x) * (newScale / scale);
+            panOffset.y = mouse.y - (mouse.y - panOffset.y) * (newScale / scale);
+            scale = newScale; requestAnimationFrame(redrawCanvas);
+        });
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
             if (uiContainer.classList.contains('hidden')) { uiContainer.classList.remove('hidden'); return; }
-
-            const worldPos = screenToWorld(e.clientX, e.clientY);
-            if (selection.box) {
-                const hit = getHit(worldPos);
-                if (hit) {
-                    selectionAction.type = hit.type;
-                    if (hit.type === 'delete') {
-                        deleteSelection();
-                        requestAnimationFrame(redrawCanvas);
-                        activePointers = []; // Clear pointers after action
-                        return;
-                    }
-                    selectionAction.corner = hit.corner;
-                    selectionAction.startPoint = worldPos;
-                    selectionAction.initialBox = { ...selection.box };
-                    return;
-                }
-            }
-            clearSelection();
-
-            if (activePointers.length === 1) { // Single finger/pen/mouse
-                 const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-                 const firstEvent = events[0];
-                 const worldPos = screenToWorld(firstEvent.clientX, firstEvent.clientY);
-                if (currentTool === 'lasso') {
-                    isLassoing = true;
-                    lassoPath = [worldPos];
-                } else {
-                    drawing = true;
-                    currentPath = [{ x: worldPos.x, y: worldPos.y, size: getBrushSize(firstEvent) }];
-                }
-            } else if (activePointers.length === 2) { // Two fingers for pinch/pan
-                drawing = false; // Stop drawing if a second finger is added
-                isLassoing = false;
-                lassoPath = [];
-                currentPath = [];
-                initialPinchDistance = Math.hypot(activePointers[0].clientX - activePointers[1].clientX, activePointers[0].clientY - activePointers[1].clientY);
-                panStart = { x: (activePointers[0].clientX + activePointers[1].clientX) / 2, y: (activePointers[0].clientY + activePointers[1].clientY) / 2 };
-            }
-            requestAnimationFrame(redrawCanvas);
-        }
-
-        function handlePointerMove(e) {
+            if (e.touches.length === 1) startDrawing(e);
+            else if (e.touches.length === 2) { isPanning = true; initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); panStart.x = getScreenPosition(e).x - panOffset.x; panStart.y = getScreenPosition(e).y - panOffset.y; }
+        });
+        canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            const pointerIndex = activePointers.findIndex(p => p.pointerId === e.pointerId);
-            if (pointerIndex === -1) return;
-            activePointers[pointerIndex] = e;
-            const worldPos = screenToWorld(e.clientX, e.clientY);
-
-            if (selectionAction.type) {
-                const dx = worldPos.x - selectionAction.startPoint.x;
-                const dy = worldPos.y - selectionAction.startPoint.y;
-                if(selectionAction.type === 'move') {
-                    selection.transform = { dx, dy, sx: 1, sy: 1 };
-                } else if (selectionAction.type === 'resize') {
-                    const startBox = selectionAction.initialBox;
-                    let sx = 1, sy = 1;
-                    if(selectionAction.corner.includes('e')) sx = (startBox.width + dx) / startBox.width;
-                    if(selectionAction.corner.includes('w')) sx = (startBox.width - dx) / startBox.width;
-                    if(selectionAction.corner.includes('s')) sy = (startBox.height + dy) / startBox.height;
-                    if(selectionAction.corner.includes('n')) sy = (startBox.height - dy) / startBox.height;
-                    selection.transform = { dx: selectionAction.corner.includes('w') ? dx : 0, dy: selectionAction.corner.includes('n') ? dy : 0, sx, sy };
-                }
-            } else if (activePointers.length === 2 && initialPinchDistance) { // Pinch/Pan
-                const currentPinchDistance = Math.hypot(activePointers[0].clientX - activePointers[1].clientX, activePointers[0].clientY - activePointers[1].clientY);
-                const midPoint = { x: (activePointers[0].clientX + activePointers[1].clientX) / 2, y: (activePointers[0].clientY + activePointers[1].clientY) / 2 };
-                // Pan
-                panOffset.x += midPoint.x - panStart.x;
-                panOffset.y += midPoint.y - panStart.y;
-                // Zoom
-                const zoomFactor = currentPinchDistance / initialPinchDistance;
-                const newScale = Math.max(0.1, Math.min(10, scale * zoomFactor));
-                const worldMidPoint = screenToWorld(midPoint.x, midPoint.y);
-                panOffset.x = midPoint.x - worldMidPoint.x * newScale;
-                panOffset.y = midPoint.y - worldMidPoint.y * newScale;
-                scale = newScale;
-                // Update for next move
-                initialPinchDistance = currentPinchDistance;
-                panStart = midPoint;
-            } else if (activePointers.length === 1) { // Single finger move
-                const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-                events.forEach(event => {
-                     const worldPos = screenToWorld(event.clientX, event.clientY);
-                    if (isLassoing) {
-                        lassoPath.push(worldPos);
-                    } else if (drawing) {
-                        currentPath.push({ x: worldPos.x, y: worldPos.y, size: getBrushSize(event) });
-                    }
-                });
+            if (drawing && e.touches.length === 1) draw(e);
+            else if (isPanning && e.touches.length === 2) {
+                panOffset.x = getScreenPosition(e).x - panStart.x; panOffset.y = getScreenPosition(e).y - panStart.y;
+                const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                const zoom = currentDist / initialPinchDistance;
+                const newScale = Math.max(0.1, Math.min(10, scale * zoom));
+                const mid = getScreenPosition(e);
+                panOffset.x = mid.x - (mid.x - panOffset.x) * (newScale / scale);
+                panOffset.y = mid.y - (mid.y - panOffset.y) * (newScale / scale);
+                scale = newScale; initialPinchDistance = currentDist; requestAnimationFrame(redrawCanvas);
             }
-            requestAnimationFrame(redrawCanvas);
-        }
-
-        function handlePointerUp(e) {
-            e.preventDefault();
-            const pointerIndex = activePointers.findIndex(p => p.pointerId === e.pointerId);
-            if (pointerIndex > -1) activePointers.splice(pointerIndex, 1);
-            
-            initialPinchDistance = null; // Reset pinch state
-
-            if (selectionAction.type) {
-                applyTransform();
-            } else if (isLassoing) {
-                isLassoing = false;
-                selectPaths();
-                lassoPath = [];
-            } else if (drawing) {
-                drawing = false;
-                if (currentPath.length > 0) {
-                    updateHistory(notebook);
-                    getCurrentPage().paths.push({ points: currentPath, color: currentColor, tool: currentTool });
-                    saveNotebook();
-                }
-                currentPath = [];
-            }
-            selectionAction.type = null;
-            requestAnimationFrame(redrawCanvas);
-        }
-
-        function isPointInPolygon(point, polygon) { /* ... same as before ... */ }
-        function selectPaths() { /* ... same as before ... */ }
-        function calculateSelectionBox() { /* ... same as before ... */ }
-        function clearSelection() { selection.paths = []; selection.box = null; selection.transform = null; }
-        function getResizeHandles(box, transform) { /* ... same as before ... */ }
-        function getDeleteIcon(box, transform) { /* ... same as before ... */ }
-        function getHit(worldPos) { /* ... same as before ... */ }
-        function applyTransform() { /* ... same as before ... */ }
-        function deleteSelection() { /* ... same as before ... */ }
-
-        function handleImageUpload(e) { /* ... same as before ... */ }
-        
-        // --- Event Listeners ---
-        canvas.addEventListener('pointerdown', handlePointerDown);
-        canvas.addEventListener('pointermove', handlePointerMove);
-        canvas.addEventListener('pointerup', handlePointerUp);
-        canvas.addEventListener('pointerleave', handlePointerUp);
-        canvas.addEventListener('pointercancel', handlePointerUp);
-        canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (e.ctrlKey) { const zoom = Math.exp((e.deltaY < 0 ? 1 : -1) * 0.1); const newScale = Math.max(0.1, Math.min(10, scale * zoom)); const mouse = {x: e.clientX, y: e.clientY}; panOffset.x = mouse.x - (mouse.x - panOffset.x) * (newScale / scale); panOffset.y = mouse.y - (mouse.y - panOffset.y) * (newScale / scale); scale = newScale; } else { panOffset.x -= e.deltaX; panOffset.y -= e.deltaY; } requestAnimationFrame(redrawCanvas); });
+        });
+        canvas.addEventListener('touchend', () => { stopDrawing(); isPanning = false; initialPinchDistance = null; });
         canvas.addEventListener('contextmenu', e => e.preventDefault());
-        toggleUiButton.addEventListener('click', (e) => { e.stopPropagation(); uiContainer.classList.add('hidden'); });
-        clearButton.addEventListener('click', () => { showConfirm("Clear current page?", () => { if (getCurrentPage().paths.length > 0 || getCurrentPage().images.length > 0) updateHistory(notebook); getCurrentPage().paths = []; getCurrentPage().images = []; saveNotebook(); requestAnimationFrame(redrawCanvas); }); });
-        toolButtons.forEach(button => { button.addEventListener('click', () => { clearSelection(); toolButtons.forEach(btn => btn.classList.remove('active')); button.classList.add('active'); currentTool = button.dataset.tool; const settings = TOOL_SETTINGS[currentTool]; currentColor = settings.color; brushSizeSlider.value = settings.baseSize; currentBrushSize = settings.baseSize; }); });
+
+        toggleUiButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            uiContainer.classList.add('hidden');
+        });
+        clearButton.addEventListener('click', () => { showConfirm("Clear the entire page?", () => { allPaths = []; savePaths(); requestAnimationFrame(redrawCanvas); }); });
+        
+        toolButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentTool = button.dataset.tool;
+                const settings = TOOL_SETTINGS[currentTool];
+                currentColor = settings.color;
+                brushSizeSlider.value = settings.baseSize;
+                currentBrushSize = settings.baseSize;
+            });
+        });
+        
         brushSizeSlider.addEventListener('input', (e) => currentBrushSize = e.target.value);
-        undoButton.addEventListener('click', undo); redoButton.addEventListener('click', redo);
-        prevPageButton.addEventListener('click', () => goToPage(notebook.currentPageIndex - 1));
-        nextPageButton.addEventListener('click', () => goToPage(notebook.currentPageIndex + 1));
-        newPageButton.addEventListener('click', addNewPage);
-        uploadImageButton.addEventListener('click', () => imageUploadInput.click());
-        imageUploadInput.addEventListener('change', handleImageUpload);
+
         function showConfirm(message, callback) { confirmMessage.textContent = message; onConfirm = callback; confirmModal.classList.remove('hidden'); }
         confirmCancel.addEventListener('click', () => confirmModal.classList.add('hidden'));
         confirmOk.addEventListener('click', () => { if (onConfirm) onConfirm(); confirmModal.classList.add('hidden'); });
 
-        // --- Export & UI State ---
-        exportButton.addEventListener('click', (e) => { e.stopPropagation(); exportMenu.classList.toggle('visible'); });
-        document.addEventListener('click', () => exportMenu.classList.remove('visible'));
-        function updateActionButtonState() { const page = getCurrentPage(); const hasContent = page && (page.paths.length > 0 || page.images.length > 0); exportButton.disabled = !hasContent; clearButton.disabled = !hasContent; undoButton.disabled = history.length === 0; redoButton.disabled = redoStack.length === 0; }
-        
-        function createExportCanvas(mode = 'full') { /* ... same as before ... */ }
-        function exportImage(format, mode) {
-            const page = getCurrentPage();
-            if (page.paths.length === 0 && page.images.length === 0) return;
-            const mimeType = `image/${format}`;
-            const tempCanvas = createExportCanvas(mode);
-            const dataUrl = tempCanvas.toDataURL(mimeType, 0.9);
-            downloadData(dataUrl, `whiteboard-export-${mode}.${format}`);
+        // --- Export ---
+        function updateActionButtonState() {
+            const hasContent = allPaths.length > 0;
+            exportPNGButton.disabled = !hasContent;
+            clearButton.disabled = !hasContent;
         }
-        function exportPDF() {
-            const page = getCurrentPage();
-            if (page.paths.length === 0 && page.images.length === 0) return;
-            const { jsPDF } = window.jspdf;
-            const tempCanvas = createExportCanvas('full');
-            const imgData = tempCanvas.toDataURL('image/jpeg', 0.8);
 
-            const pdf = new jsPDF({
-                orientation: tempCanvas.width > tempCanvas.height ? 'landscape' : 'portrait',
-                unit: 'pt',
-                format: [tempCanvas.width, tempCanvas.height]
-            });
-
-            pdf.addImage(imgData, 'JPEG', 0, 0, tempCanvas.width, tempCanvas.height);
-            pdf.save('whiteboard-export-full.pdf');
+        function exportCanvas(format) {
+            if (allPaths.length === 0) return;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            allPaths.forEach(path => path.points.forEach(p => {
+                minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+            }));
+            const padding = 40;
+            const exportCanvas = document.createElement('canvas');
+            const exportCtx = exportCanvas.getContext('2d');
+            exportCanvas.width = maxX - minX + padding * 2;
+            exportCanvas.height = maxY - minY + padding * 2;
+            exportCtx.fillStyle = '#fdfdfd';
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+            drawPaths(exportCtx, allPaths, { offsetX: -minX + padding, offsetY: -minY + padding });
+            const link = document.createElement('a');
+            link.href = exportCanvas.toDataURL(`image/${format}`, 1.0);
+            link.download = `whiteboard-export.${format}`;
+            link.click();
         }
-        function downloadData(data, filename) { const link = document.createElement('a'); link.href = data; link.download = filename; link.click(); }
 
-        exportFullPNGButton.addEventListener('click', () => exportImage('png', 'full'));
-        exportViewPNGButton.addEventListener('click', () => exportImage('png', 'view'));
-        exportFullJPGButton.addEventListener('click', () => exportImage('jpeg', 'full'));
-        exportFullPDFButton.addEventListener('click', exportPDF);
+        exportPNGButton.addEventListener('click', () => exportCanvas('png'));
 
         // --- Init ---
         function init() {
-            loadNotebook();
-            notebook.pages.forEach(page => {
-                page.images.forEach(imgData => {
-                    if (!loadedImageElements[imgData.id]) {
-                        const img = new Image();
-                        img.src = imgData.src;
-                        img.onload = () => requestAnimationFrame(redrawCanvas);
-                        loadedImageElements[imgData.id] = img;
-                    }
-                });
-            });
-            resizeCanvas(); 
-            const initialTool = 'fineliner'; document.querySelector(`.tool-button[data-tool="${initialTool}"]`).classList.add('active');
-            currentTool = initialTool; const settings = TOOL_SETTINGS[initialTool];
-            currentColor = settings.color; brushSizeSlider.value = settings.baseSize; currentBrushSize = settings.baseSize;
+            loadPaths();
+            resizeCanvas();
+            // Set initial tool
+            const initialTool = 'fineliner';
+            document.querySelector(`.tool-button[data-tool="${initialTool}"]`).classList.add('active');
+            currentTool = initialTool;
+            const settings = TOOL_SETTINGS[initialTool];
+            currentColor = settings.color;
+            brushSizeSlider.value = settings.baseSize;
+            currentBrushSize = settings.baseSize;
         }
+
         init();
     </script>
 </body>
