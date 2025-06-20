@@ -241,29 +241,48 @@
         function drawPaths(context, paths, options = {}) {
             const { offsetX = 0, offsetY = 0 } = options;
             const transform = options.transform || {dx: 0, dy: 0, sx: 1, sy: 1};
+            
             context.save();
             context.translate(transform.dx, transform.dy);
             context.scale(transform.sx, transform.sy);
 
             paths.forEach(path => {
                 if (!path || !path.points || path.points.length < 1) return;
-                context.strokeStyle = path.color; context.lineCap = 'round'; context.lineJoin = 'round';
+                
+                context.fillStyle = path.color;
                 if (path.tool === 'marker' || path.tool === 'eraser') context.globalAlpha = 0.8;
-                if (path.points.length === 1) {
-                    context.beginPath(); context.fillStyle = path.color; context.arc(path.points[0].x + offsetX, path.points[0].y + offsetY, path.points[0].size / 2, 0, Math.PI * 2); context.fill();
-                } else {
-                    for (let i = 1; i < path.points.length; i++) {
+
+                // Use an interpolation method for high quality strokes
+                for (let i = 0; i < path.points.length - 1; i++) {
+                    const p1 = path.points[i];
+                    const p2 = path.points[i + 1];
+                    
+                    const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+                    for (let j = 0; j < dist; j++) {
+                        const x = p1.x + Math.cos(angle) * j;
+                        const y = p1.y + Math.sin(angle) * j;
+                        const size = p1.size + (p2.size - p1.size) * (j / dist);
+                        
                         context.beginPath();
-                        context.moveTo(path.points[i-1].x + offsetX, path.points[i-1].y + offsetY);
-                        context.lineWidth = path.points[i].size * Math.min(Math.abs(transform.sx), Math.abs(transform.sy));
-                        context.lineTo(path.points[i].x + offsetX, path.points[i].y + offsetY);
-                        context.stroke();
+                        context.arc(x + offsetX, y + offsetY, (size / 2) * Math.min(Math.abs(transform.sx), Math.abs(transform.sy)), 0, Math.PI * 2);
+                        context.fill();
                     }
                 }
+                
+                // Handle single-point paths (dots)
+                if (path.points.length === 1) {
+                     context.beginPath();
+                     context.arc(path.points[0].x + offsetX, path.points[0].y + offsetY, (path.points[0].size / 2) * Math.min(Math.abs(transform.sx), Math.abs(transform.sy)), 0, Math.PI * 2);
+                     context.fill();
+                }
+
                 context.globalAlpha = 1.0;
             });
             context.restore();
         }
+
 
         function drawImages(context, images) {
             images.forEach(imgData => {
